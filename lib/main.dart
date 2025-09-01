@@ -4,6 +4,7 @@ import 'package:home_budget_manager/providers/budget_provider.dart';
 import 'package:home_budget_manager/screens/dashboard_screen.dart';
 import 'package:home_budget_manager/screens/expenses_screen.dart';
 import 'package:home_budget_manager/screens/add_expense_screen.dart';
+import 'package:home_budget_manager/screens/emi_screen.dart';
 
 void main() {
   runApp(
@@ -46,7 +47,7 @@ class _MainNavigationState extends State<MainNavigation> {
   static final List<Widget> _widgetOptions = <Widget>[
     DashboardScreen(),
     ExpensesScreen(),
-    Placeholder(), // EMI screen
+    EMIScreen(), // EMI screen
     Placeholder(), // Todo screen
     Placeholder(), // Savings screen
   ];
