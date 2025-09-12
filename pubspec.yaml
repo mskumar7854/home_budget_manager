@@ -1,0 +1,53 @@
+name: home_budget_app
+description: "Personal Home Budget and Expense Manager"
+publish_to: 'none' 
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+ 
+  flutter_local_notifications: ^19.4.1
+  flutter_local_notifications_linux: ^6.0.0
+  timezone: ^0.10.1
+  
+  # Local database
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  path_provider: ^2.1.2
+
+  # Charts for reports
+  fl_chart: ^1.1.0
+
+  # Date formatting
+  intl: ^0.20.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
+
+  # For Hive model generation
+  hive_generator: ^2.0.1
+  build_runner: ^2.4.6
+  analyzer: 6.4.1
+  
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icon/app_icon.png
+
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21
+
