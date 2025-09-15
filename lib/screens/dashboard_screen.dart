@@ -1698,9 +1698,9 @@ List<Widget> _modernSpendingByCategory(List<MapEntry<String, double>> categories
     );
   }
 
-  // Month-Year Picker modal (Enhanced)
+  // Enhanced Month-Year Picker
   Future<void> _showMonthYearPicker(BuildContext context) async {
-    final monthNames = [
+    final List<String> monthNames = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
@@ -1713,185 +1713,128 @@ List<Widget> _modernSpendingByCategory(List<MapEntry<String, double>> categories
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            return Dialog(
-              backgroundColor: Colors.transparent,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Column(
+                children: [
+                  const Text(
+                    "Select Month & Year",
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.orangeAccent.shade200, Colors.orangeAccent.shade400],
-                        ),
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.orangeAccent.shade200, Colors.orangeAccent.shade400],
                       ),
-                      child: Column(
-                        children: [
-                          const Text(
-                            "Select Month & Year",
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          onPressed: () => setModalState(() => tempYear--),
+                          icon: const Icon(Icons.chevron_left, color: Colors.white),
+                        ),
+                        Text(
+                          '$tempYear',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => setModalState(() => tempYear++),
+                          icon: const Icon(Icons.chevron_right, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 320,
+                height: 240,
+                child: GridView.builder(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 2.0,
+                  ),
+                  itemCount: 12,
+                  itemBuilder: (context, index) {
+                    final isSelected = (index + 1) == tempMonthIndex;
+                    
+                    return GestureDetector(
+                      onTap: () => setModalState(() => tempMonthIndex = index + 1),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: isSelected 
+                            ? LinearGradient(colors: [Colors.orangeAccent, Colors.orangeAccent.shade400])
+                            : null,
+                          color: isSelected ? null : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected ? Colors.orangeAccent : Colors.grey.shade300,
+                            width: 2,
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            monthNames[index],
                             style: TextStyle(
-                              fontSize: 20,
+                              fontSize: 15,
                               fontWeight: FontWeight.w700,
-                              color: Colors.white,
+                              color: isSelected ? Colors.white : Colors.black87,
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  onPressed: () => setModalState(() => tempYear--),
-                                  icon: const Icon(Icons.chevron_left_rounded, color: Colors.white),
-                                ),
-                                Text(
-                                  '$tempYear',
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                IconButton(
-                                  onPressed: () => setModalState(() => tempYear++),
-                                  icon: const Icon(Icons.chevron_right_rounded, color: Colors.white),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: GridView.builder(
-                        shrinkWrap: true,
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 2.2,
                         ),
-                        itemCount: 12,
-                        itemBuilder: (context, index) {
-                          final isSelected = (index + 1) == tempMonthIndex;
-                          return GestureDetector(
-                            onTap: () => setModalState(() => tempMonthIndex = index + 1),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                gradient: isSelected 
-                                    ? LinearGradient(
-                                        colors: [Colors.orangeAccent.shade200, Colors.orangeAccent.shade400],
-                                      )
-                                    : null,
-                                color: isSelected ? null : Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: isSelected ? Colors.orangeAccent : Colors.grey.shade300,
-                                  width: 1.5,
-                                ),
-                                boxShadow: isSelected ? [
-                                  BoxShadow(
-                                    color: Colors.orangeAccent.withOpacity(0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ] : null,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  monthNames[index],
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: isSelected ? Colors.white : Colors.black87,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: TextButton(
-                              onPressed: () => Navigator.of(ctx).pop(),
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: Text(
-                                "Cancel",
-                                style: TextStyle(
-                                  color: Colors.grey.shade600,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orangeAccent,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 0,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _selectedYear = tempYear;
-                                  final fullMonthNames = [
-                                    'January', 'February', 'March', 'April', 'May', 'June',
-                                    'July', 'August', 'September', 'October', 'November', 'December'
-                                  ];
-                                  _selectedMonth = fullMonthNames[tempMonthIndex - 1];
-                                });
-                                Navigator.of(ctx).pop();
-                              },
-                              child: const Text(
-                                "Apply", 
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: Text(
+                    "Cancel",
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orangeAccent,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _selectedYear = tempYear;
+                      final fullMonthNames = [
+                        'January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'
+                      ];
+                      _selectedMonth = fullMonthNames[tempMonthIndex - 1];
+                    });
+                    Navigator.of(ctx).pop();
+                  },
+                  child: const Text("Apply", style: TextStyle(fontWeight: FontWeight.w600)),
+                ),
+              ],
             );
           },
         );
