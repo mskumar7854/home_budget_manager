@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
-
 import '../models/emi.dart';
 import '../models/category.dart';
 
@@ -19,7 +18,6 @@ class _EmiScreenState extends State<EmiScreen> {
   int _selectedYear = DateTime.now().year;
   final List<String> _months =
       List.generate(12, (i) => DateFormat.MMMM().format(DateTime(0, i + 1)));
-
   String? _selectedCategoryFilter;
 
   @override
@@ -48,50 +46,190 @@ class _EmiScreenState extends State<EmiScreen> {
     }
   }
 
-  /// Helper: compute how many months should have been paid since startDate up to today.
-  /// This is an *estimate* and doesn't rely on any 'monthsPaid' field in the model.
+  // Month-Year Picker - Same as dashboard
+  Future<void> _showMonthYearPicker(BuildContext context) async {
+    final List<String> monthNames = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+
+    int tempYear = _selectedYear;
+    int tempMonthIndex = _selectedMonthIndex;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Column(
+                children: [
+                  Text(
+                    "Select Month & Year",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.orangeAccent.shade100,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          onPressed: () => setModalState(() => tempYear--),
+                          icon: Icon(Icons.chevron_left, color: Colors.black87),
+                        ),
+                        Text(
+                          '$tempYear',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => setModalState(() => tempYear++),
+                          icon: Icon(Icons.chevron_right, color: Colors.black87),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              content: Container(
+                width: 300,
+                height: 200,
+                child: GridView.builder(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                    childAspectRatio: 2.0,
+                  ),
+                  itemCount: 12,
+                  itemBuilder: (context, index) {
+                    final isSelected = (index + 1) == tempMonthIndex;
+                    
+                    return GestureDetector(
+                      onTap: () {
+                        setModalState(() {
+                          tempMonthIndex = index + 1;
+                        });
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isSelected ? Colors.orangeAccent : Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isSelected ? Colors.orangeAccent.shade700 : Colors.grey.shade300,
+                            width: 2,
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            monthNames[index],
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: isSelected ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: Text(
+                    "Cancel",
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orangeAccent,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _selectedYear = tempYear;
+                      final fullMonthNames = [
+                        'January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'
+                      ];
+                      _selectedMonth = fullMonthNames[tempMonthIndex - 1];
+                    });
+                    Navigator.of(ctx).pop();
+                  },
+                  child: Text(
+                    "Apply",
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Rest of your existing methods remain the same...
   int _computeMonthsPaidFromStart(Emi e) {
     final start = e.startDate;
     final today = DateTime.now();
     if (start.isAfter(today)) return 0;
     int months =
         (today.year - start.year) * 12 + (today.month - start.month);
-    // if current day is before start day, the current month payment hasn't arrived yet
     if (today.day < start.day) months -= 1;
     if (months < 0) months = 0;
     if (e.tenureMonths != 0 && months > e.tenureMonths) months = e.tenureMonths;
     return months;
   }
 
-  /// Compute months remaining
   int _computeMonthsRemaining(Emi e) {
     final paid = _computeMonthsPaidFromStart(e);
     final remain = (e.tenureMonths - paid);
     return remain < 0 ? 0 : remain;
   }
 
-  /// Compute the next due date based on start + monthsPaid
   DateTime _computeNextDueDate(Emi e) {
     final paid = _computeMonthsPaidFromStart(e);
-    // Next due is start + paid months
     final start = e.startDate;
     final totalMonths = (start.month - 1) + paid;
     final year = start.year + (totalMonths ~/ 12);
     final month = (totalMonths % 12) + 1;
-    // pick same day if possible (clamp to last day of month)
     final lastDay = DateTime(year, month + 1, 0).day;
     final day = start.day > lastDay ? lastDay : start.day;
     return DateTime(year, month, day);
   }
 
   Color _statusColor(Emi e) {
-    if (!e.isActive) return Colors.green; // consider inactive as Done (green)
+    if (!e.isActive) return Colors.green;
     final nowDate = DateTime.now();
     final nextDue = _computeNextDueDate(e);
     if (nextDue.isBefore(DateTime(nowDate.year, nowDate.month, nowDate.day))) {
-      return Colors.red; // overdue
+      return Colors.red;
     }
-    return Colors.orange; // pending this month
+    return Colors.orange;
   }
 
   Future<void> _openAddEditEmi({Emi? item}) async {
@@ -101,7 +239,6 @@ class _EmiScreenState extends State<EmiScreen> {
     DateTime startDate = item?.startDate ?? DateTime.now();
     final tenureCtrl =
         TextEditingController(text: item?.tenureMonths.toString() ?? "");
-
     final catBox = Hive.box<Category>('categories');
     final categories = catBox.values.toList();
     String? selectedCategory =
@@ -126,11 +263,11 @@ class _EmiScreenState extends State<EmiScreen> {
                       Row(
                         children: [
                           Expanded(
-                              child: Text(
-                                  item == null ? "Add EMI" : "Edit EMI",
-                                  style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold))),
+                            child: Text(
+                                item == null ? "Add EMI" : "Edit EMI",
+                                style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold))),
                           IconButton(
                               onPressed: () => Navigator.of(context).pop(),
                               icon: const Icon(Icons.close))
@@ -220,6 +357,7 @@ class _EmiScreenState extends State<EmiScreen> {
                                               "Please enter valid name and tenure")));
                                   return;
                                 }
+
                                 final emiBox = Hive.box<Emi>('emis');
                                 if (item == null) {
                                   final newEmi = Emi(
@@ -240,6 +378,7 @@ class _EmiScreenState extends State<EmiScreen> {
                                   item.category = selectedCategory;
                                   await item.save();
                                 }
+
                                 Navigator.of(context).pop();
                                 setState(() {});
                               },
@@ -299,42 +438,41 @@ class _EmiScreenState extends State<EmiScreen> {
   @override
   Widget build(BuildContext context) {
     final md = DateFormat.MMMd();
-
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text("EMI Tracker"),
+        elevation: 4,
+        backgroundColor: Colors.orangeAccent.shade200,
+        title: const Text(
+          "EMI Tracker",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
+          // Month-Year picker button styled
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
-            child: Row(
-              children: [
-                DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedMonth,
-                    onChanged: (value) {
-                      if (value != null) setState(() => _selectedMonth = value);
-                    },
-                    items: _months
-                        .map((m) =>
-                            DropdownMenuItem(value: m, child: Text(m)))
-                        .toList(),
-                  ),
+            child: TextButton.icon(
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.white.withOpacity(0.25),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
                 ),
-                const SizedBox(width: 8),
-                DropdownButton<int>(
-                  value: _selectedYear,
-                  onChanged: (v) {
-                    if (v != null) setState(() => _selectedYear = v);
-                  },
-                  items: _years
-                      .map((y) =>
-                          DropdownMenuItem(value: y, child: Text(y.toString())))
-                      .toList(),
+              ),
+              onPressed: () => _showMonthYearPicker(context),
+              icon: const Icon(Icons.calendar_today, color: Colors.white),
+              label: Text(
+                "${DateFormat.MMM().format(DateTime(0, _selectedMonthIndex))} $_selectedYear",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
                 ),
-                const SizedBox(width: 6),
-              ],
+              ),
             ),
-          )
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -349,7 +487,6 @@ class _EmiScreenState extends State<EmiScreen> {
           valueListenable: Hive.box<Emi>('emis').listenable(),
           builder: (context, Box<Emi> emiBox, _) {
             final allEmis = emiBox.values.toList();
-
             final selectedMonth = _selectedMonthIndex;
             final selectedYear = _selectedYear;
             final monthStart = DateTime(selectedYear, selectedMonth, 1);
@@ -378,8 +515,8 @@ class _EmiScreenState extends State<EmiScreen> {
                   (totals[e.category ?? "Uncategorized"] ?? 0) +
                       (e.emiAmount ?? 0);
             }
-            final totalAll = totals.values.fold(0.0, (a, b) => a + b);
 
+            final totalAll = totals.values.fold<double>(0.0, (a, b) => a + b);
             final catBox = Hive.box<Category>('categories');
             final categoryEntries = totals.entries.toList();
 
@@ -387,124 +524,124 @@ class _EmiScreenState extends State<EmiScreen> {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (categoryEntries.isNotEmpty) ...[
-                      const Text("EMIs by Category",
-                          style: TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 10),
-                      LayoutBuilder(builder: (context, constraints) {
-                        final spacing = 12.0;
-                        final available = constraints.maxWidth;
-                        final singleW = (available - spacing * 2) / 3;
-                        return Wrap(
-                          spacing: spacing,
-                          runSpacing: 12,
-                          children: [
-                            _categoryCardWidget("All", "📊",
-                                Colors.orangeAccent.value, 0, singleW,
-                                _selectedCategoryFilter == null,
-                                isAll: true, allTotal: totalAll),
-                            ...categoryEntries.map((entry) {
-                              final cat = catBox.values.firstWhere(
-                                  (c) => c.name == entry.key,
-                                  orElse: () => Category(
-                                      name: entry.key,
-                                      icon: '🧾',
-                                      color: Colors.blueAccent.value,
-                                      type: "Expense"));
-                              return _categoryCardWidget(
-                                  cat.name,
-                                  cat.icon,
-                                  cat.color,
-                                  entry.value,
-                                  singleW,
-                                  _selectedCategoryFilter == cat.name);
-                            }),
-                          ],
-                        );
-                      }),
-                      const SizedBox(height: 16),
-                    ],
-                    const Text("Upcoming EMIs (this month + overdue)",
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (categoryEntries.isNotEmpty) ...[
+                    const Text("EMIs by Category",
                         style: TextStyle(
                             fontSize: 15, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 8),
-                    if (filtered.isEmpty)
-                      const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 32),
-                          child: Center(child: Text("No EMIs for this selection")))
-                    else
-                      ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: filtered.length,
-                        separatorBuilder: (_, __) =>
-                            const Divider(height: 1, indent: 16, endIndent: 16),
-                        itemBuilder: (context, index) {
-                          final e = filtered[index];
-                          final cat = _findCategory(e.category) ??
-                              Category(
-                                  name: e.category ?? "Uncategorized",
-                                  icon: '🧾',
-                                  color: Colors.blueAccent.value,
-                                  type: "Expense");
-                          final overdue = _computeNextDueDate(e).isBefore(monthStart);
-                          final status = e.isActive
-                              ? (overdue ? "Overdue" : "Pending")
-                              : "Done";
-                          final statusColor = _statusColor(e);
-                          final nextDue = _computeNextDueDate(e);
-                          final monthsRemaining = _computeMonthsRemaining(e);
+                    const SizedBox(height: 10),
+                    LayoutBuilder(builder: (context, constraints) {
+                      final spacing = 12.0;
+                      final available = constraints.maxWidth;
+                      final singleW = (available - spacing * 2) / 3;
+                      return Wrap(
+                        spacing: spacing,
+                        runSpacing: 12,
+                        children: [
+                          _categoryCardWidget("All", "📊",
+                              Colors.orangeAccent.value, 0, singleW,
+                              _selectedCategoryFilter == null,
+                              isAll: true, allTotal: totalAll),
+                          ...categoryEntries.map((entry) {
+                            final cat = catBox.values.firstWhere(
+                                (c) => c.name == entry.key,
+                                orElse: () => Category(
+                                    name: entry.key,
+                                    icon: '🧾',
+                                    color: Colors.blueAccent.value,
+                                    type: "Expense"));
+                            return _categoryCardWidget(
+                                cat.name,
+                                cat.icon,
+                                cat.color,
+                                entry.value,
+                                singleW,
+                                _selectedCategoryFilter == cat.name);
+                          }),
+                        ],
+                      );
+                    }),
+                    const SizedBox(height: 16),
+                  ],
+                  const Text("Upcoming EMIs (this month + overdue)",
+                      style: TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  if (filtered.isEmpty)
+                    const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 32),
+                        child: Center(child: Text("No EMIs for this selection")))
+                  else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) =>
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                      itemBuilder: (context, index) {
+                        final e = filtered[index];
+                        final cat = _findCategory(e.category) ??
+                            Category(
+                                name: e.category ?? "Uncategorized",
+                                icon: '🧾',
+                                color: Colors.blueAccent.value,
+                                type: "Expense");
+                        final overdue = _computeNextDueDate(e).isBefore(monthStart);
+                        final status = e.isActive
+                            ? (overdue ? "Overdue" : "Pending")
+                            : "Done";
+                        final statusColor = _statusColor(e);
+                        final nextDue = _computeNextDueDate(e);
+                        final monthsRemaining = _computeMonthsRemaining(e);
 
-                          return Dismissible(
-                            key: ValueKey(e.key),
-                            direction: DismissDirection.endToStart,
-                            background: Container(
-                              color: Colors.red,
-                              alignment: Alignment.centerRight,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 20),
-                              child: const Icon(Icons.delete,
-                                  color: Colors.white),
-                            ),
-                            confirmDismiss: (dir) async {
-                              final ok = await _confirmDelete(e);
-                              if (ok) {
-                                await e.delete();
-                                setState(() {});
-                              }
-                              return ok;
-                            },
-                            child: ListTile(
-                              dense: true,
-                              contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
-                              leading: CircleAvatar(
-                                  backgroundColor:
-                                      Color(cat.color).withOpacity(0.15),
-                                  child: Text(cat.icon)),
-                              title: Text(e.name ?? "",
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 13),
-                                  overflow: TextOverflow.ellipsis),
-                              subtitle: Text(
-                                  "Next due: ${DateFormat.MMMd().format(nextDue)} • Remaining: $monthsRemaining",
-                                  style: const TextStyle(fontSize: 11),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis),
-                              trailing: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text("₹${(e.emiAmount ?? 0).toStringAsFixed(0)}",
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.red)),
-                                  const SizedBox(height: 6),
-                                  Container(
+                        return Dismissible(
+                          key: ValueKey(e.key),
+                          direction: DismissDirection.endToStart,
+                          background: Container(
+                            color: Colors.red,
+                            alignment: Alignment.centerRight,
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 20),
+                            child: const Icon(Icons.delete,
+                                color: Colors.white),
+                          ),
+                          confirmDismiss: (dir) async {
+                            final ok = await _confirmDelete(e);
+                            if (ok) {
+                              await e.delete();
+                              setState(() {});
+                            }
+                            return ok;
+                          },
+                          child: ListTile(
+                            dense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            leading: CircleAvatar(
+                              backgroundColor:
+                                  Color(cat.color).withOpacity(0.15),
+                              child: Text(cat.icon)),
+                            title: Text(e.name ?? "",
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13),
+                                overflow: TextOverflow.ellipsis),
+                            subtitle: Text(
+                                "Next due: ${DateFormat.MMMd().format(nextDue)} • Remaining: $monthsRemaining",
+                                style: const TextStyle(fontSize: 11),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis),
+                            trailing: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text("₹${(e.emiAmount ?? 0).toStringAsFixed(0)}",
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.red)),
+                                const SizedBox(height: 6),
+                                Container(
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 8, vertical: 2),
                                     decoration: BoxDecoration(
@@ -513,15 +650,15 @@ class _EmiScreenState extends State<EmiScreen> {
                                     child: Text(status,
                                         style: TextStyle(
                                             color: statusColor, fontSize: 11)),
-                                  )
-                                ],
-                              ),
-                              onTap: () => _openAddEditEmi(item: e),
+                                ),
+                              ],
                             ),
-                          );
-                        },
-                      ),
-                  ]),
+                            onTap: () => _openAddEditEmi(item: e),
+                          ),
+                        );
+                      },
+                    ),
+                ]),
             );
           },
         ),

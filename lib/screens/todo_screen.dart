@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
-
 import '../models/task.dart';
 
 class TodoScreen extends StatefulWidget {
@@ -18,7 +17,6 @@ class _TodoScreenState extends State<TodoScreen> {
   int _selectedYear = DateTime.now().year;
   final List<String> _months =
       List.generate(12, (i) => DateFormat.MMMM().format(DateTime(0, i + 1)));
-
   String? _priorityFilter; // "High", "Medium", "Low", or null for all
   bool _showCompleted = false;
   bool _calendarMode = false; // toggles daily calendar-like view
@@ -37,6 +35,152 @@ class _TodoScreenState extends State<TodoScreen> {
   Future<void> _refresh() async {
     await Future.delayed(const Duration(milliseconds: 150));
     if (mounted) setState(() {});
+  }
+
+  // Month-Year Picker - Same as dashboard
+  Future<void> _showMonthYearPicker(BuildContext context) async {
+    final List<String> monthNames = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+
+    int tempYear = _selectedYear;
+    int tempMonthIndex = _selectedMonthIndex;
+
+    await showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Column(
+                children: [
+                  Text(
+                    "Select Month & Year",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.orangeAccent.shade100,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          onPressed: () => setModalState(() => tempYear--),
+                          icon: Icon(Icons.chevron_left, color: Colors.black87),
+                        ),
+                        Text(
+                          '$tempYear',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => setModalState(() => tempYear++),
+                          icon: Icon(Icons.chevron_right, color: Colors.black87),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              content: Container(
+                width: 300,
+                height: 200,
+                child: GridView.builder(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                    childAspectRatio: 2.0,
+                  ),
+                  itemCount: 12,
+                  itemBuilder: (context, index) {
+                    final isSelected = (index + 1) == tempMonthIndex;
+                    
+                    return GestureDetector(
+                      onTap: () {
+                        setModalState(() {
+                          tempMonthIndex = index + 1;
+                        });
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: isSelected ? Colors.orangeAccent : Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isSelected ? Colors.orangeAccent.shade700 : Colors.grey.shade300,
+                            width: 2,
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            monthNames[index],
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: isSelected ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: Text(
+                    "Cancel",
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orangeAccent,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _selectedYear = tempYear;
+                      final fullMonthNames = [
+                        'January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'
+                      ];
+                      _selectedMonth = fullMonthNames[tempMonthIndex - 1];
+                    });
+                    Navigator.of(ctx).pop();
+                  },
+                  child: Text(
+                    "Apply",
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   // Convert stored priority (int?) to UI string ("High"/"Medium"/"Low")
@@ -72,7 +216,6 @@ class _TodoScreenState extends State<TodoScreen> {
   Future<void> _openAddEditTask({Task? item}) async {
     final titleCtrl = TextEditingController(text: item?.title ?? "");
     DateTime dueDate = item?.dueDate ?? DateTime.now();
-
     // initial UI priority string based on stored int priority
     String priorityUI = _priorityToString(item?.priority as int?);
 
@@ -85,7 +228,6 @@ class _TodoScreenState extends State<TodoScreen> {
               EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
           child: StatefulBuilder(builder: (context, setSheetState) {
             void setDueTo(DateTime d) => setSheetState(() => dueDate = d);
-
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: SingleChildScrollView(
@@ -93,9 +235,9 @@ class _TodoScreenState extends State<TodoScreen> {
                   Row(
                     children: [
                       Expanded(
-                          child: Text(item == null ? "Add Task" : "Edit Task",
-                              style: const TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.bold))),
+                        child: Text(item == null ? "Add Task" : "Edit Task",
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold))),
                       IconButton(
                           onPressed: () => Navigator.of(context).pop(),
                           icon: const Icon(Icons.close))
@@ -108,7 +250,6 @@ class _TodoScreenState extends State<TodoScreen> {
                         const InputDecoration(labelText: "Task description"),
                   ),
                   const SizedBox(height: 10),
-
                   // Date + quick picks
                   Row(
                     children: [
@@ -162,9 +303,7 @@ class _TodoScreenState extends State<TodoScreen> {
                       )
                     ],
                   ),
-
                   const SizedBox(height: 10),
-
                   // Priority
                   Row(children: [
                     Expanded(
@@ -184,9 +323,7 @@ class _TodoScreenState extends State<TodoScreen> {
                       child: Container(), // reserved (we removed recurrence)
                     ),
                   ]),
-
                   const SizedBox(height: 12),
-
                   Row(children: [
                     Expanded(
                       child: ElevatedButton(
@@ -214,6 +351,7 @@ class _TodoScreenState extends State<TodoScreen> {
                             item.priority = storedPriorityValue;
                             await item.save();
                           }
+
                           Navigator.of(context).pop();
                           setState(() {});
                         },
@@ -234,7 +372,6 @@ class _TodoScreenState extends State<TodoScreen> {
                         child: Text(item.isCompleted ? "Mark Uncomplete" : "Mark Done"),
                       ),
                   ]),
-
                   const SizedBox(height: 12),
                 ]),
               ),
@@ -275,36 +412,43 @@ class _TodoScreenState extends State<TodoScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("To-Do List"),
+        elevation: 4,
+        backgroundColor: Colors.orangeAccent.shade200,
+        title: const Text(
+          "To-Do List",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
             tooltip: _calendarMode ? "List view" : "Calendar view",
-            icon: Icon(_calendarMode ? Icons.list : Icons.calendar_today),
+            icon: Icon(_calendarMode ? Icons.list : Icons.calendar_today, color: Colors.white),
             onPressed: () => setState(() => _calendarMode = !_calendarMode),
           ),
-          // Month & Year selectors
+          // Month-Year picker button styled
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
-            child: Row(children: [
-              DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _selectedMonth,
-                  onChanged: (value) {
-                    if (value != null) setState(() => _selectedMonth = value);
-                  },
-                  items: _months.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
+            child: TextButton.icon(
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.white.withOpacity(0.25),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
                 ),
               ),
-              const SizedBox(width: 8),
-              DropdownButton<int>(
-                value: _selectedYear,
-                onChanged: (v) {
-                  if (v != null) setState(() => _selectedYear = v);
-                },
-                items: _years.map((y) => DropdownMenuItem(value: y, child: Text(y.toString()))).toList(),
+              onPressed: () => _showMonthYearPicker(context),
+              icon: const Icon(Icons.calendar_month, color: Colors.white),
+              label: Text(
+                "${DateFormat.MMM().format(DateTime(0, _selectedMonthIndex))} $_selectedYear",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ]),
-          )
+            ),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -319,7 +463,6 @@ class _TodoScreenState extends State<TodoScreen> {
           valueListenable: Hive.box<Task>('tasks').listenable(),
           builder: (context, Box<Task> box, _) {
             final all = box.values.toList();
-
             // Filter tasks by selected month/year
             final monthFiltered = all.where((t) {
               return t.dueDate.month == _selectedMonthIndex && t.dueDate.year == _selectedYear;
@@ -383,13 +526,11 @@ class _TodoScreenState extends State<TodoScreen> {
                                 onSelected: (_) => setState(() => _priorityFilter = _priorityFilter == "Low" ? null : "Low"),
                               ),
                             ),
-                            // you can add more filter chips here; horizontal scroll will prevent overflow
                             const SizedBox(width: 8),
                           ],
                         ),
                       ),
                     ),
-
                     // Show done switch on the right
                     Row(children: [
                       const Text("Show done"),
@@ -397,9 +538,7 @@ class _TodoScreenState extends State<TodoScreen> {
                     ])
                   ],
                 ),
-
                 const SizedBox(height: 12),
-
                 if (_calendarMode)
                   // Simple calendar-like daily list
                   Column(
@@ -494,7 +633,7 @@ class _TodoScreenState extends State<TodoScreen> {
       },
       onLongPress: () async {
         // quick actions: mark done/pending, edit, delete
-        final actions = await showModalBottomSheet<String?>(
+        final actions = await showModalBottomSheet<String>(
           context: context,
           builder: (ctx) {
             return SafeArea(
@@ -507,7 +646,6 @@ class _TodoScreenState extends State<TodoScreen> {
             );
           },
         );
-
         if (actions == "toggle") {
           t.isCompleted = !t.isCompleted;
           await t.save();
